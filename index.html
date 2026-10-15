@@ -1,0 +1,483 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Life Paint Order Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Barlow:wght@500;600;700&family=IBM+Plex+Mono:wght@600&display=swap">
+<style>
+/* Layout: 1 job info → 2 squares → 3 Generate Bid → filled order + download. Single light theme, all text black. */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --ink:#000000; --line:#b9c3cd;
+  --accent:#9fd0f0; --focus:#1f6fa8;
+  --trim:#f6d9c8; --body:#cfe6f4; --sand:#d8edcf; --warn:#fff4d6;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --text:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--text);font-size:16px;line-height:1.4;padding-inline:16px;padding-block:20px 48px}
+.wrap{max-width:900px;margin:0 auto;display:grid;gap:16px}
+h1,h2{font-family:var(--display);margin:0;text-transform:uppercase;text-wrap:balance}
+h1{font-size:clamp(30px,6vw,44px);font-weight:800;line-height:1}
+h2{font-size:22px;font-weight:800}
+.step{display:flex;align-items:center;gap:10px}
+.step b{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#000;color:#fff;font-family:var(--display);font-size:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.field{display:grid;gap:4px;min-width:0}
+.label{font-size:12px;text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+input,select{width:100%;font:inherit;font-size:16px;color:#000;background:#fff;border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-height:46px}
+input[type=number]{font-family:var(--mono);text-align:center;font-size:22px}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.squares{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.sqbox{border-radius:10px;padding:14px;display:grid;gap:8px;border:1px solid var(--line)}
+.sqbox.trim{background:var(--trim)} .sqbox.body{background:var(--body)} .sqbox.sand{background:var(--sand)}
+.sqbox h3{margin:0;font-family:var(--display);font-size:20px;font-weight:800;text-transform:uppercase;line-height:1.1}
+.sqbox p{margin:0;font-size:13px;font-weight:600}
+.seg{display:flex;border:1px solid #000;border-radius:6px;overflow:hidden;background:#fff}
+.seg button{flex:1;font:inherit;font-weight:700;font-size:15px;border:0;background:#fff;color:#000;padding:9px 6px;min-height:44px;cursor:pointer}
+.seg button[aria-pressed=true]{background:#000;color:#fff}
+.go{font-family:var(--display);font-size:28px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;background:#000;color:#fff;border:0;border-radius:10px;padding:16px;min-height:64px;cursor:pointer;width:100%}
+.go:active{transform:translateY(1px)}
+.btn{font:inherit;font-weight:700;font-size:17px;background:var(--accent);color:#000;border:2px solid #000;border-radius:8px;padding:12px 18px;min-height:52px;cursor:pointer}
+.btn.ghost{background:#fff}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.btns .btn{flex:1 1 200px}
+.err{background:#ffe1e1;border:1px solid #c00;border-radius:6px;padding:10px;font-weight:700}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:10px 6px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.07em}
+td.n,th.n{text-align:right;font-family:var(--mono);white-space:nowrap}
+td.big{text-align:right;font-family:var(--display);font-size:26px;font-weight:800;white-space:nowrap}
+td.big .unit{font-size:16px;font-weight:700}
+.prod small{display:block;font-size:13px;font-weight:500}
+.sendto{font-size:15px;line-height:1.6}
+.extras{display:grid;gap:0;border-top:1px solid var(--line)}
+.xrow{display:grid;grid-template-columns:1fr 130px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.xrow b{font-size:17px}
+.xrow .d{display:block;font-size:14px;font-weight:600}
+.xrow .c{display:block;font-size:13px}
+.xrow .inp{display:grid;gap:2px;text-align:center}
+.xrow .inp span{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.xrow input{font-size:20px}
+.fold{display:block}
+.fold>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;min-height:48px;font-family:var(--display);font-weight:800;font-size:22px;text-transform:uppercase}
+.fold>summary::-webkit-details-marker{display:none}
+.fold[open]>summary{margin-bottom:12px}
+.fold>p{margin-bottom:8px!important}
+.foldhint{display:flex;align-items:center;gap:10px;font-family:var(--text);font-size:14px;font-weight:700;text-transform:none}
+#xCount:not(:empty){background:#000;color:#fff;border-radius:999px;padding:3px 10px}
+.chev{width:12px;height:12px;border-right:3px solid #000;border-bottom:3px solid #000;transform:rotate(45deg);margin:0 4px 4px 0;transition:transform .15s}
+.fold[open] .chev{transform:rotate(-135deg);margin:4px 4px 0 0}
+@media (max-width:420px){ .xrow{grid-template-columns:1fr 104px;gap:10px} .fold>summary{font-size:20px} }
+.xgroup{font-family:var(--display);font-weight:800;font-size:18px;text-transform:uppercase;padding:12px 0 4px;border-bottom:1px solid var(--line)}
+.formimg{display:block;width:100%;max-width:100%;height:auto;border:1px solid #000;border-radius:4px;background:#fff;-webkit-touch-callout:default}
+.howto{margin:0 0 10px;font-size:16px;line-height:1.5;background:var(--warn);border:1px solid #000;border-radius:6px;padding:10px}
+.howto span{user-select:all;font-weight:700}
+.sendto span{user-select:all;font-weight:700}
+.toast{font-weight:700;min-height:1.4em}
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+details summary{cursor:pointer;font-family:var(--display);font-weight:800;font-size:18px;text-transform:uppercase}
+details .grid{margin-top:12px}
+details input[type=number]{font-size:16px}
+.small{font-size:13px}
+.small a{color:#000}
+@media (max-width:560px){
+  .go{font-size:24px}
+  th.hide,td.hide{display:none}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="label">Alta California Construction · Lifetime Plus Cool Life</div>
+    <h1>Life Paint Order Calculator</h1>
+  </header>
+
+  <section class="panel" aria-labelledby="s1">
+    <h2 class="step" id="s1"><b>1</b> Job info</h2>
+    <div class="grid">
+      <label class="field"><span class="label">Customer name</span><input type="text" id="custName" autocomplete="off"></label>
+      <label class="field"><span class="label">Address</span><input type="text" id="custAddr" autocomplete="off"></label>
+      <label class="field"><span class="label">City</span><input type="text" id="city" autocomplete="off"></label>
+      <label class="field"><span class="label">Zip</span><input type="text" id="zip" autocomplete="off" inputmode="numeric"></label>
+      <label class="field"><span class="label">Ship to</span>
+        <input type="text" id="shipTo" autocomplete="off" value="Will Call" list="shipList">
+        <datalist id="shipList"><option value="Will Call"></option></datalist></label>
+      <label class="field"><span class="label">Body color (902H)</span><input type="text" id="bodyColor" autocomplete="off"></label>
+      <label class="field"><span class="label">Trim color</span><input type="text" id="trimColor" autocomplete="off"></label>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="s2">
+    <h2 class="step" id="s2"><b>2</b> Squares <span class="small" style="font-family:var(--text);text-transform:none;font-weight:600">(1 square = 100 sq ft)</span></h2>
+    <div class="squares">
+      <div class="sqbox trim">
+        <h3>Trim / Fascia / Wood</h3>
+        <p>975H primer + trim paint</p>
+        <input type="number" id="sqTrim" min="0" step="0.25" inputmode="decimal" placeholder="0" aria-label="Trim squares">
+        <div class="seg" role="group" aria-label="Trim sheen">
+          <button type="button" id="sheen943" aria-pressed="true">Semi-Gloss</button>
+          <button type="button" id="sheen944" aria-pressed="false">Satin</button>
+        </div>
+      </div>
+      <div class="sqbox body">
+        <h3>Smooth / Spanish Lace Body</h3>
+        <p>975H primer + 902H Cool Life</p>
+        <input type="number" id="sqBody" min="0" step="0.25" inputmode="decimal" placeholder="0" aria-label="Body squares">
+        <div class="seg" role="group" aria-label="Wall texture">
+          <button type="button" id="texSmooth" aria-pressed="true">Smooth</button>
+          <button type="button" id="texLace" aria-pressed="false">Spanish Lace</button>
+        </div>
+      </div>
+      <div class="sqbox sand">
+        <h3>Sand (Textured) Finish</h3>
+        <p>970H textured primer + 902H Cool Life</p>
+        <input type="number" id="sqSand" min="0" step="0.25" inputmode="decimal" placeholder="0" aria-label="Sand finish squares">
+      </div>
+    </div>
+  </section>
+
+  <details class="panel fold" id="otherFold">
+    <summary><span class="step"><b>3</b> Other products</span><span class="foldhint"><span id="xCount"></span><span class="chev" aria-hidden="true"></span></span></summary>
+    <p class="small" style="margin:0">Optional. Coatings and caulks: enter squares. Bonding and patch products have no coverage rate on the chart, so enter how many you want.</p>
+    <div class="extras" id="extras"></div>
+  </details>
+
+  <button class="go" id="goBtn" type="button">Generate Bid</button>
+  <div class="err" id="err" hidden></div>
+
+  <section class="panel" id="result" hidden aria-labelledby="s3">
+    <h2 class="step" id="s3"><b>4</b> Order ready for Life Paint</h2>
+    <div class="tablewrap" style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Product</th><th class="hide">Color</th><th class="n hide">Needed (gal)</th><th class="n">5-gal pails</th><th class="n">1-gal cans</th><th class="n">Total (gal)</th></tr></thead>
+        <tbody id="orderBody"></tbody>
+      </table>
+    </div>
+    <div id="formWrap" hidden>
+      <p class="howto"><b>To send it:</b> press and hold the order form below and choose <b>Save</b> or <b>Share</b>, or take a screenshot. Then email it to <span>orderdesk@lifepaint.com</span>.</p>
+      <img id="formImg" alt="Filled Cool Life Supreme order form" class="formimg">
+    </div>
+    <div class="btns">
+      <button class="btn" id="pdfBtn" type="button">Download order form (PDF)</button>
+      <button class="btn ghost" id="copyBtn" type="button">Copy as text</button>
+    </div>
+    <div class="toast" id="toast" aria-live="polite"></div>
+    <textarea id="copyFallback" hidden style="width:100%;min-height:150px;font-family:var(--mono);font-size:14px"></textarea>
+    <div class="sendto">Send to Life Paint: email <span>orderdesk@lifepaint.com</span> or fax <span>562-946-5921</span> (Mon–Fri 7:00–4:00)</div>
+  </section>
+
+  <details id="settings">
+    <summary>Settings</summary>
+    <div class="grid">
+      <label class="field"><span class="label">Dealer name</span><input type="text" id="dealerName" value="Alta California Construction Corp"></label>
+      <label class="field"><span class="label">Dealer contact</span><input type="text" id="dealerContact" value="Michael Saffaie"></label>
+      <label class="field"><span class="label">Dealer phone</span><input type="text" id="dealerPhone" value="(310) 953-8805"></label>
+      <label class="field"><span class="label">Dealer email</span><input type="text" id="dealerEmail"></label>
+      <label class="field"><span class="label">Warranty</span>
+        <select id="warranty"><option>Supreme</option><option selected>Gold</option><option>Silver</option><option>Bronze</option><option>Trim</option></select></label>
+      <label class="field"><span class="label">Spanish lace extra 902H %</span><input type="number" id="laceExtra" min="0" step="5" value="0"></label>
+      <label class="field"><span class="label">970H hose loss (gal/job)</span><input type="number" id="hoseLoss" min="0" step="1" value="3"></label>
+      <label class="field"><span class="label">975H coverage (sq ft/gal)</span><input type="number" id="r975" min="1" value="200"></label>
+      <label class="field"><span class="label">970H coverage (sq ft/gal)</span><input type="number" id="r970" min="1" value="50"></label>
+      <label class="field"><span class="label">902H coverage (sq ft/gal)</span><input type="number" id="r902" min="1" value="100"></label>
+      <label class="field"><span class="label">Trim paint coverage (sq ft/gal)</span><input type="number" id="rTrim" min="1" value="250"></label>
+    </div>
+    <p class="small">Coverage rates from the <a href="https://lifetimepluscoatings.com/wp-content/uploads/2021/09/Cool-Life-Product-Reference-Manual.pdf" target="_blank" rel="noopener">Cool Life Product Reference Manual</a>: 975H 150–200, 970H 50–60, 902H 90–100, Supreme Wall &amp; Trim 250. Lace extra % is 0 until Life Paint gives you a number.</p>
+  </details>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var st = { sheen:'943', lace:false };
+  var order = null;
+
+  function n(id){ var v = parseFloat($(id).value); return isFinite(v) && v > 0 ? v : 0; }
+  function fmt(x){ return (Math.round(x*100)/100).toFixed(2); }
+  function today(){ var d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function nowTime(){ var d = new Date(), h = d.getHours(), m = String(d.getMinutes()).padStart(2,'0'); return ((h%12)||12)+':'+m+(h<12?' AM':' PM'); }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  function toggle(a, b, onA){
+    $(a).setAttribute('aria-pressed', String(onA));
+    $(b).setAttribute('aria-pressed', String(!onA));
+  }
+  $('sheen943').onclick = function(){ st.sheen='943'; toggle('sheen943','sheen944',true); stale(); };
+  $('sheen944').onclick = function(){ st.sheen='944'; toggle('sheen943','sheen944',false); stale(); };
+  $('texSmooth').onclick = function(){ st.lace=false; toggle('texSmooth','texLace',true); stale(); };
+  $('texLace').onclick = function(){ st.lace=true; toggle('texSmooth','texLace',false); stale(); };
+
+  function stale(){ if (!$('result').hidden){ $('result').hidden = true; $('toast').textContent=''; } save(); }
+  document.querySelectorAll('input,select').forEach(function(el){ el.addEventListener('input', stale); el.addEventListener('change', stale); });
+
+  var EXTRAS = [
+    {grp:'Cool Life'},
+    {code:'778H', name:'Heat Reflective Coating', desc:'High altitude & heavy marine layer · wood, stucco, masonry', cov:200, color:true},
+    {grp:'Stretch-Guard'},
+    {code:'802H', name:'Smooth High Build Elastomeric Coating', desc:'Wood, stucco, masonry · not P.A.C.E. approved or heat reflective', cov:100, color:true},
+    {grp:'Weather Fighter'},
+    {code:'770H', name:'Hi Build Flat House & Trim', desc:'All-weather, 200% elongation · wood, stucco, masonry · 10 yr', cov:200, color:true},
+    {grp:'Warranty system products'},
+    {code:'9077H', name:'Elastomeric Textured Stucco Crack Filler', desc:'Masonry', cov:26},
+    {code:'9177H', name:'Elasto-Patch Sandable Caulking', desc:'Wood / masonry', cov:26},
+    {code:'9277H', name:'Elastomeric Smooth Non-Sandable Caulking', desc:'Wood / masonry', cov:26},
+    {code:'LDBR900H', name:'White Polyurethane Caulking', desc:'All surfaces', cov:0},
+    {code:'LD-81', name:'Cement Modifier · Supreme Bonding', desc:'All surfaces', cov:0},
+    {code:'LD-1', name:'Patching Cement · Acrylic Stucco Patch', desc:'Stucco, masonry', cov:0}
+  ];
+  (function(){
+    var h = '';
+    EXTRAS.forEach(function(x){
+      if (x.grp){ h += '<div class="xgroup">'+x.grp+'</div>'; return; }
+      var id = 'x_'+x.code.replace(/\W/g,'');
+      h += '<div class="xrow"><div><b>'+x.code+'</b> <span class="d">'+x.name+'</span><span class="c">'+x.desc+(x.cov?' · '+x.cov+' sq ft/gal':'')+'</span></div>'+
+        '<label class="inp"><span>'+(x.cov?'Squares':'Qty')+'</span><input type="number" id="'+id+'" min="0" step="'+(x.cov?'0.25':'1')+'" inputmode="decimal" placeholder="0"></label></div>';
+    });
+    $('extras').innerHTML = h;
+    $('extras').querySelectorAll('input').forEach(function(el){ el.addEventListener('input', function(){ stale(); xCount(); }); });
+  })();
+  function xCount(){
+    var c = EXTRAS.filter(function(x){ return x.code && n('x_'+x.code.replace(/\W/g,'')) > 0; }).length;
+    $('xCount').textContent = c ? c + ' added' : '';
+  }
+  function anyExtra(){ return EXTRAS.some(function(x){ return x.code && n('x_'+x.code.replace(/\W/g,'')) > 0; }); }
+
+  function compute(){
+    var sqT = n('sqTrim'), sqB = n('sqBody'), sqS = n('sqSand');
+    var r975 = n('r975')||200, r970 = n('r970')||50, r902 = n('r902')||100, rT = n('rTrim')||250;
+    var lace = st.lace ? (parseFloat($('laceExtra').value)||0) : 0;
+    var hose = sqS > 0 ? (parseFloat($('hoseLoss').value)||0) : 0;
+    var g975 = (sqT + sqB)*100/r975;
+    var g970 = sqS > 0 ? sqS*100/r970 + hose : 0;
+    var g902 = sqB*100/r902*(1+lace/100) + sqS*100/r902;
+    var gT = sqT*100/rT;
+    var lines = [
+      {code:'902H', name:'Cool-Life', color:$('bodyColor').value, gal:g902},
+      {code:'975H', name:'Micro Life Primer Standard', color:'', gal:g975},
+      {code:'970H', name:'Micro Life Primer Textured', color:'', gal:g970},
+      {code:st.sheen, name: st.sheen==='943' ? 'Supreme Wall & Trim Semi-Gloss' : 'Supreme Wall & Trim Satin', color:$('trimColor').value, gal:gT}
+    ];
+    EXTRAS.forEach(function(x){
+      if (!x.code) return;
+      var v = n('x_'+x.code.replace(/\W/g,''));
+      if (!v) return;
+      if (x.cov) lines.push({code:x.code, name:x.name, color: x.color ? $('bodyColor').value : '', gal: v*100/x.cov});
+      else lines.push({code:x.code, name:x.name, color:'', qty: Math.ceil(v)});
+    });
+    lines = lines.filter(function(l){ return l.gal > 0 || l.qty > 0; });
+    lines.forEach(function(l){
+      if (l.qty) return;
+      var p = Math.floor(l.gal/5 + 1e-9), g = Math.ceil(l.gal - p*5 - 1e-9);
+      if (g >= 5){ p++; g = 0; }
+      l.pails = p; l.gals = g; l.total = p*5 + g;
+    });
+    var scope = (sqT > 0 && sqB === 0 && sqS === 0) ? 'Trim only' : 'Whole home';
+    return {lines:lines, sq:{trim:sqT, body:sqB, sand:sqS}, scope:scope, date:today(), time:nowTime()};
+  }
+
+  $('goBtn').onclick = function(){
+    var e = $('err');
+    if (!n('sqTrim') && !n('sqBody') && !n('sqSand') && !anyExtra()){ e.textContent = 'Enter squares or a quantity for at least one product.'; e.hidden = false; return; }
+    if (!$('custName').value.trim()){ e.textContent = 'Enter the customer name. Life Paint needs it for the warranty.'; e.hidden = false; $('custName').focus(); return; }
+    e.hidden = true;
+    order = compute();
+    var rows = '';
+    order.lines.forEach(function(l){
+      if (l.qty){
+        rows += '<tr><td class="prod"><b>'+l.code+'</b><small>'+esc(l.name)+'</small></td>'+
+          '<td class="hide">—</td><td class="n hide">—</td><td class="n">—</td><td class="n">—</td><td class="big">'+l.qty+' <span class="unit">qty</span></td></tr>';
+        return;
+      }
+      rows += '<tr><td class="prod"><b>'+l.code+'</b><small>'+esc(l.name)+'</small></td>'+
+        '<td class="hide">'+esc(l.color||'—')+'</td><td class="n hide">'+fmt(l.gal)+'</td>'+
+        '<td class="n">'+l.pails+'</td><td class="n">'+l.gals+'</td><td class="big">'+l.total+' <span class="unit">gal</span></td></tr>';
+    });
+    $('orderBody').innerHTML = rows;
+    $('toast').textContent = ''; $('copyFallback').hidden = true;
+    $('result').hidden = false;
+    var show = function(){ try{ $('formImg').src = renderFormImage(order); $('formWrap').hidden = false; }catch(err){ $('formWrap').hidden = true; } };
+    if (logoImg.complete) show(); else { logoImg.onload = show; logoImg.onerror = show; }
+    $('result').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+  };
+
+  var LOGO = 'data:image/jpeg;base64,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';
+
+  function buildPDF(o){
+    var J = window.jspdf && window.jspdf.jsPDF;
+    if (!J) throw new Error('The PDF tool did not load. Check your connection and reload the page.');
+    var doc = new J({unit:'pt', format:'letter'});
+    drawForm(doc, o);
+    return doc.output('arraybuffer');
+  }
+
+  /* Canvas stand-in with the same drawing calls as the PDF, so the form can be shown as an image */
+  var logoImg = new Image(); logoImg.src = LOGO;
+  function CanvasDoc(scale){
+    var c = document.createElement('canvas'); c.width = 612*scale; c.height = 792*scale;
+    var g = c.getContext('2d'); g.scale(scale, scale);
+    g.fillStyle = '#fff'; g.fillRect(0,0,612,792);
+    var font = {style:'normal', size:12}, fill = '#000', text = '#000', stroke = '#000';
+    function rgb(r,gr,b){ return 'rgb('+r+','+gr+','+b+')'; }
+    function setF(){ g.font = (font.style==='bold'?'bold ':'')+font.size+'px Helvetica, Arial, sans-serif'; }
+    setF();
+    var d = {
+      canvas:c,
+      setTextColor:function(r,gr,b){ text = rgb(r,gr,b); },
+      setDrawColor:function(r,gr,b){ stroke = rgb(r,gr,b); },
+      setFillColor:function(r,gr,b){ fill = rgb(r,gr,b); },
+      setFont:function(f,st){ font.style = st||'normal'; setF(); },
+      setFontSize:function(sz){ font.size = sz; setF(); },
+      setLineWidth:function(w){ g.lineWidth = w; },
+      line:function(x1,y1,x2,y2){ g.strokeStyle = stroke; g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.stroke(); },
+      rect:function(x,y,w,h,st){ if (st==='F'){ g.fillStyle = fill; g.fillRect(x,y,w,h); } else { g.strokeStyle = stroke; g.strokeRect(x,y,w,h); } },
+      addImage:function(src,t,x,y,w,h){ if (logoImg.complete && logoImg.naturalWidth) g.drawImage(logoImg,x,y,w,h); },
+      getTextWidth:function(s){ return g.measureText(s).width; },
+      splitTextToSize:function(s,max){
+        var words = String(s).split(' '), out = [], cur = '';
+        words.forEach(function(w){ var t = cur ? cur+' '+w : w; if (g.measureText(t).width > max && cur){ out.push(cur); cur = w; } else cur = t; });
+        if (cur) out.push(cur); return out;
+      },
+      text:function(s,x,y,opt){
+        opt = opt || {};
+        var lines = Array.isArray(s) ? s : (opt.maxWidth ? d.splitTextToSize(s,opt.maxWidth) : [String(s)]);
+        if (opt.maxWidth && !Array.isArray(s)) lines = lines.slice(0,1);
+        g.fillStyle = text; g.textAlign = opt.align==='right'?'right':opt.align==='center'?'center':'left'; g.textBaseline = 'alphabetic';
+        lines.forEach(function(l,i){ g.fillText(l, x, y + i*font.size*1.15); });
+        g.textAlign = 'left';
+      }
+    };
+    return d;
+  }
+  function renderFormImage(o){
+    var d = CanvasDoc(2);
+    drawForm(d, o);
+    return d.canvas.toDataURL('image/png');
+  }
+
+  function drawForm(doc, o){
+    var W = 612, M = 30, R = W - M, TW = 552;
+    doc.setTextColor(0,0,0); doc.setDrawColor(0,0,0);
+    doc.setFillColor(40,40,40); doc.rect(0,0,W,78,'F');
+    try{ doc.setFillColor(255,255,255); doc.rect(M-4,8,70,62,'F'); doc.addImage(LOGO,'JPEG',M,10,62,52); }catch(e){}
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    doc.text('EMAIL: ORDERDESK@LIFEPAINT.COM', M+80, 26);
+    doc.text('FAX: 562-946-5921', M+80, 40);
+    doc.text('OFFICE HOURS 7:00-4:00 MONDAY-FRIDAY', M+80, 54);
+    doc.setFont('helvetica','bold'); doc.setFontSize(17);
+    doc.text('COOL LIFE SUPREME', R, 34, {align:'right'});
+    doc.text('ORDER FORM', R, 56, {align:'right'});
+    doc.setTextColor(0,0,0);
+
+    var y = 98, mid = 290, rh = 18;
+    function lab(t,x,yy){ doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.text(t,x,yy); }
+    function val(t,x,yy,w){ doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.text(String(t||''),x,yy,w?{maxWidth:w}:undefined); }
+    function rule(x1,yy,x2){ doc.setLineWidth(.4); doc.line(x1,yy+4,x2,yy+4); }
+    var left = [['DATE:',o.date,'TIME:',o.time],['DEALER NAME:',$('dealerName').value],['DEALER CONTACT:',$('dealerContact').value],['PHONE:',$('dealerPhone').value],['EMAIL:',$('dealerEmail').value],['WARRANTY:',$('warranty').value.toUpperCase()]];
+    var right = [['HOMEOWNER WARRANTY INFORMATION:'],['NAME:',$('custName').value],['NAME:',''],['ADDRESS:',$('custAddr').value],['CITY:',$('city').value,'ZIP:',$('zip').value],['','']];
+    for (var i=0;i<6;i++){
+      var yy = y + i*rh, L = left[i], Rr = right[i];
+      lab(L[0],M,yy); val(L[1],M+78,yy,mid-M-90);
+      if (L[2]){ lab(L[2],M+170,yy); val(L[3],M+198,yy); }
+      rule(M,yy,mid-10);
+      lab(Rr[0],mid,yy);
+      if (i>0){ if (Rr[2]){ val(Rr[1],mid+40,yy,180); lab(Rr[2],R-90,yy); val(Rr[3],R-70,yy); } else val(Rr[1],mid+(i===5?78:48),yy,R-mid-50); }
+      rule(mid,yy,R);
+    }
+    doc.setLineWidth(.6); doc.line(mid-5,y-10,mid-5,y+5*rh+4);
+    y += 6*rh;
+    lab('SHIP TO:',M,y); val($('shipTo').value.toUpperCase(),M+40,y);
+    rule(M,y,R);
+    y += 16;
+    doc.setTextColor(200,0,0); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+    doc.text('PRIMER/BONDER MUST BE USED WITH TOPCOAT IN ORDER TO QUALIFY FOR P.A.C.E. AND/OR TO RECEIVE A WARRANTY', W/2, y, {align:'center'});
+    doc.setTextColor(0,0,0);
+    y += 8;
+    var cols = [{t:'PRODUCT',x:M,w:180},{t:'COLOR NAME',x:M+180,w:110},{t:'COLOR #',x:M+290,w:52},{t:'MANUFACTURER',x:M+342,w:66},{t:'5GAL',x:M+408,w:50},{t:'GAL',x:M+458,w:50},{t:'TOTAL',x:M+508,w:44}];
+    doc.setFillColor(30,30,30); doc.rect(M,y,TW,14,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+    cols.forEach(function(c){ doc.text(c.t, c.x+c.w/2, y+10, {align:'center'}); });
+    doc.setTextColor(0,0,0); y += 14;
+    var ROWS = [{sec:'GOLD - LIFETIME WARRANTY'},{code:'902H',label:'Cool-Life'},{ac:1},{ac:1},{ac:1},{code:'778H',label:'Cool-Life'},{ac:1},
+      {sec:'PRIMER-BONDER'},{code:'975H',label:'Micro Life Primer Standard'},{code:'970H',label:'Micro Life Primer Textured'},
+      {sec:'SUPREME WALL & TRIM'},{code:'943',label:'Semi-Gloss'},{ac:1},{ac:1},{ac:1},{code:'944',label:'Satin'},{ac:1},{ac:1},{ac:1},
+      {sec:'Additional Materials'},{code:'802H',label:'Silver Coating Lifetime Warranty'},{ac:1},{code:'770H',label:'Bronze Coating 10 year Warranty'},{ac:1},
+      {code:'43H',label:'Satin Trim Paint'},{code:'44H',label:'Semi-Gloss Trim Paint'},{code:'70H',label:'Flat Trim Paint'},{code:'95H',label:'Gloss trim Paint'},{code:'9177H',label:'Sandable Caulk and Patch'}];
+    var by = {}; o.lines.forEach(function(l){ by[l.code] = l; });
+    var onForm = {}; ROWS.forEach(function(r){ if (r.code) onForm[r.code] = 1; });
+    o.lines.forEach(function(l){ if (!onForm[l.code]) ROWS.push({code:l.code, label:l.name}); });
+    var h = 13.6;
+    ROWS.forEach(function(r){
+      if (r.sec){ doc.setFillColor(205,205,205); doc.rect(M,y,TW,h+2,'F'); doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.text(r.sec,M+4,y+11); doc.setLineWidth(.6); doc.rect(M,y,TW,h+2); y += h+2; return; }
+      doc.setLineWidth(.5); cols.forEach(function(c){ doc.rect(c.x,y,c.w,h); });
+      doc.setFontSize(7.5);
+      if (r.ac){ doc.setFont('helvetica','normal'); doc.text('Additional Colors',M+4,y+9.5); }
+      else {
+        doc.setFont('helvetica','bold'); doc.text(r.code+':',M+4,y+9.5);
+        var cw = doc.getTextWidth(r.code+': ');
+        doc.setFont('helvetica','normal'); doc.text(r.label,M+4+cw,y+9.5);
+        var l = by[r.code];
+        if (l){
+          doc.setFont('helvetica','bold'); doc.setFontSize(9);
+          doc.text(l.color||'', cols[1].x+3, y+10, {maxWidth:cols[1].w-6});
+          if (l.qty){ doc.text(l.qty+' qty', cols[6].x+cols[6].w/2, y+10, {align:'center'}); }
+          else {
+            doc.text(String(l.pails), cols[4].x+cols[4].w/2, y+10, {align:'center'});
+            doc.text(String(l.gals), cols[5].x+cols[5].w/2, y+10, {align:'center'});
+            doc.text(l.total+' gal', cols[6].x+cols[6].w/2, y+10, {align:'center'});
+          }
+        }
+      }
+      y += h;
+    });
+    y += 10;
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
+    doc.text(doc.splitTextToSize('*SPECIAL TINTS: Some dark colors may have additional cost. RETURNED GOODS: All sales are final. All returns must be approved by LTP. Prices subject to change without notice. *Coverage per gallon is normally expressed as coverage over a smooth surface and should be adjusted for non-smooth surfaces. USE SPECIFIED PREPARATION PROCEDURES. Be sure to box all of your materials to ensure a uniform color.', TW), M, y);
+  }
+
+  function getDownloads(){
+    return new Promise(function(resolve){
+      var tries = 0;
+      (function check(){
+        if (window.claude && typeof window.claude.use === 'function'){
+          window.claude.use('downloads').then(resolve, function(){ resolve(null); });
+        } else if (tries++ < 20){ setTimeout(check, 250); }
+        else resolve(null);
+      })();
+    });
+  }
+  $('pdfBtn').onclick = async function(){
+    var t = $('toast'); if (!order) return;
+    t.textContent = 'Preparing the PDF…';
+    var dl = null; try{ dl = await getDownloads(); }catch(e){}
+    if (!dl){ t.textContent = 'This screen does not allow downloads. Open the calculator from the link in your Claude app or at claude.ai, or tap Copy as text and paste it into an email.'; return; }
+    var buf; try{ buf = buildPDF(order); }catch(e){ t.textContent = e.message; return; }
+    var who = ($('custName').value || 'order').replace(/[^\w\- ]/g,'').trim() || 'order';
+    try{ await dl.save({filename:'Cool Life Order - '+who+'.pdf', data:buf}); t.textContent = 'Saved. Email it to orderdesk@lifepaint.com or fax 562-946-5921.'; }
+    catch(err){ var c = err && err.code; t.textContent = c==='declined' ? 'Download canceled.' : c==='rate_limited' ? 'A save prompt is already open.' : 'Could not save the PDF here.'; }
+  };
+
+  $('copyBtn').onclick = function(){
+    if (!order) return;
+    var L = ['COOL LIFE SUPREME ORDER', 'Dealer: '+$('dealerName').value+' · '+$('dealerContact').value+' · '+$('dealerPhone').value,
+      'Date: '+order.date+'  Warranty: '+$('warranty').value+'  Ship to: '+$('shipTo').value,
+      'Homeowner: '+$('custName').value, 'Address: '+$('custAddr').value+', '+$('city').value+' '+$('zip').value,
+      ''];
+    order.lines.forEach(function(l){ L.push(l.qty ? l.code+' '+l.name+': '+l.qty+' qty' : l.code+' '+l.name+(l.color?' – '+l.color:'')+': '+l.pails+' x 5GAL + '+l.gals+' GAL = '+l.total+' gal'); });
+    L.push('', 'Please box all 902H.');
+    var t = L.join('\n'), fb = $('copyFallback');
+    function fallback(){ fb.hidden=false; fb.value=t; fb.focus(); fb.select(); $('toast').textContent='Text is selected below. Copy it with your device.'; }
+    try{ navigator.clipboard.writeText(t).then(function(){ fb.hidden=true; $('toast').textContent='Order copied.'; }, fallback); }catch(e){ fallback(); }
+  };
+
+  var KEEP = ['dealerName','dealerContact','dealerPhone','dealerEmail','warranty','laceExtra','hoseLoss','r975','r970','r902','rTrim'];
+  function save(){ try{ var d = {}; KEEP.forEach(function(k){ d[k] = $(k).value; }); localStorage.setItem('lifePaintSettings', JSON.stringify(d)); }catch(e){} }
+  try{ var d = JSON.parse(localStorage.getItem('lifePaintSettings')||'null'); if (d) KEEP.forEach(function(k){ if (d[k] != null) $(k).value = d[k]; }); }catch(e){}
+})();
+</script>
+
+</body></html>
